@@ -1,0 +1,24 @@
+{
+ "name": "StudyFlow",
+ "short_name": "StudyFlow",
+ "description": "Planificador, tests y tarjetas de estudio. Creada por Jesús Crespo.",
+ "lang": "es",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#f6f4fc",
+ "theme_color": "#7c3aed",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
