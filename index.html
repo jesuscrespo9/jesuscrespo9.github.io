@@ -215,24 +215,43 @@ function finishQuiz(p){p.done=true;p.score=p.quiz.questions.reduce((a,q,i)=>a+(p
  S.results.push({id:uid(),quizId:p.quiz.id,title:p.quiz.title,score:p.score,total:p.quiz.questions.length,date:today()});S.results=S.results.slice(-50);save()}
 function mark(v){const c=S.cards[ui.ci];c.known=v;S.reviewed++;ui.flip=false;ui.ci=(ui.ci+1)%S.cards.length;save()}
 function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function mkQs(items){const all=[...new Set(items.map(x=>x.a))];if(all.length<4)return null;
- return items.map(x=>{let p=[...new Set(items.filter(y=>y.k===x.k).map(y=>y.a))];if(p.length<4)p=all;
-  const o=shuf([x.a,...shuf(p.filter(z=>z!==x.a)).slice(0,3)]);return{q:x.q,o,c:o.indexOf(x.a)}})}
-function notesItems(t){const it=[];t.split('\n').map(l=>l.trim()).filter(l=>l.length>8).forEach(l=>{
- const m=l.match(/^(.{2,60}?)\s*(?::|=| - | – )\s*(.{3,})$/);
- if(m){it.push({k:'d',q:'Según tus apuntes, ¿qué es «'+m[1]+'»?',a:m[2].replace(/[.;]$/,'')});return}
- const w=l.replace(/[.,;:()«»"]/g,'').split(/\s+/).filter(x=>x.length>=6).sort((a,b)=>b.length-a.length)[0];
- if(w&&l.split(/\s+/).length>=5)it.push({k:'h',q:'Completa: '+l.replace(w,'_____'),a:w})});return it}
+function mkQs(items,ex){ex=ex||[];return items.map(x=>{
+ let p=[...new Set(items.filter(y=>y.k===x.k).map(y=>y.a))].filter(z=>z!==x.a);
+ if(p.length<3){const e=ex.filter(w=>w!==x.a&&!p.includes(w)&&(x.k==='n')===/^\d+$/.test(w));p=p.concat(shuf(e))}
+ if(p.length<3&&x.k==='n'){const n=+x.a;[n+1,n-1,n+10,n-10,n+100].forEach(v=>{if(!p.includes(String(v)))p.push(String(v))})}
+ if(p.length<3)p=p.concat(shuf(items.map(y=>y.a).filter(z=>z!==x.a&&!p.includes(z))));
+ p=[...new Set(p)];if(p.length<3)return null;
+ const o=shuf([x.a,...shuf(p).slice(0,3)]);return{q:x.q,o,c:o.indexOf(x.a)}}).filter(Boolean)}
+const STOP=new Set('porque cuando donde entre sobre desde hasta también además después antes durante mientras aunque cuales cuyas cuyos estos estas aquel aquella ellos ellas nuestro nuestra tiene tienen puede pueden había hacer ejemplo siempre mismo misma otros otras'.split(' '));
+function notesItems(t){const it=[],V=new Set(),cl=w=>w.replace(/^[^\wÁÉÍÓÚÑáéíóúñü]+|[^\wÁÉÍÓÚÑáéíóúñü]+$/g,'');
+ t.replace(/([.!?])\s+/g,'$1\n').split('\n').map(l=>l.replace(/^[-•*\d.)\s]+/,'').trim()).filter(l=>l.length>=25).forEach(s=>{
+  const ws=s.split(/\s+/).map(cl);ws.forEach(w=>{if(/^\d{2,}$/.test(w)||(w.length>=5&&!STOP.has(w.toLowerCase())))V.add(w)});
+  let m=s.match(/^(.{2,60}?)\s*(?::|=| - | – )\s*(.{3,})$/);
+  if(m){it.push({k:'d',q:'Según tus apuntes, ¿qué es «'+m[1]+'»?',a:m[2].replace(/[.;]$/,'')});return}
+  m=s.match(/^(?:El |La |Los |Las |Un |Una )?(.{3,50}?)\s+(?:es|son|se define como|se denomina|se llama|significa|consiste en)\s+(.{12,110}?)\.?$/);
+  if(m){it.push({k:'d',q:'Según tus apuntes, ¿qué se dice de «'+m[1]+'»?',a:m[2]});return}
+  if(ws.length<6)return;
+  let best=null,pr=9;ws.forEach((w,i)=>{if(i===0||w.length<4)return;
+   const p=/^\d{2,}$/.test(w)?1:/^[A-ZÁÉÍÓÚÑ]/.test(w)?2:(w.length>=7&&!STOP.has(w.toLowerCase())?3:9);
+   if(p<pr||(p===pr&&best&&w.length>best.length)){pr=p;best=w}});
+  if(best)it.push({k:pr===1?'n':pr===2?'p':'h',q:'Completa: '+s.replace(best,'_____'),a:best})});
+ return{items:it.slice(0,40),ex:[...V]}}
 function bulkItems(t){return t.split(/\n\s*\n/).map(b=>{const o=[];let q='',r=-1;
  b.split('\n').map(x=>x.trim()).filter(Boolean).forEach(l=>{let m;
   if(m=l.match(/^respuesta\s*:\s*([a-d])/i))r='abcd'.indexOf(m[1].toLowerCase());
   else if(m=l.match(/^([a-d])[\)\.]\s*(.+)/i))o['abcd'.indexOf(m[1].toLowerCase())]=m[2];
   else q=q?q+' '+l:l});
  return o.length===4&&o.every(Boolean)&&r>=0&&q?{q,o,c:r}:null}).filter(Boolean)}
-function autoModal(){modal('<h3>⚡ Crear test automático</h3><label>Título<input id="at" placeholder="Ej. Tema 3"></label><label>Apuntes o preguntas<textarea id="ta" rows="7" placeholder="Apuntes: una idea por línea. Con «término: definición» salen mejores preguntas.\n\nImportar: separa cada pregunta con una línea en blanco, opciones a) b) c) d) y «Respuesta: b»"></textarea></label><div class="err" id="err"></div><div class="bar"><button class="btn" data-a="genNotes">Desde apuntes</button><button class="btn s" data-a="genBulk">Importar preguntas</button></div><div class="bar"><button class="btn s" data-a="genCards">Desde mis tarjetas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><small>Se abrirá el editor para que revises el test antes de guardarlo.</small>')}
+function loadTess(){return window.Tesseract?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>ko(0);document.head.appendChild(s)})}
+async function ocr(f){const st=$('#err');st.style.color='var(--mu)';st.textContent='Cargando lector de texto… (necesita internet)';
+ try{await loadTess();const r=await Tesseract.recognize(f,'spa',{logger:m=>{if(m.status==='recognizing text')st.textContent='Leyendo foto… '+Math.round(m.progress*100)+'%'}});
+  const t=r.data.text.trim();if(!t)throw 0;const ta=$('#ta');ta.value=(ta.value?ta.value+'\n':'')+t;st.style.color='var(--ok)';st.textContent='Texto leído. Revísalo y corrige errores antes de generar.'}
+ catch(e){st.style.color='';st.textContent='No se pudo leer la foto. Comprueba la conexión o prueba con una foto más nítida y recta.'}}
+document.addEventListener('change',e=>{if(e.target.id==='img'&&e.target.files[0])ocr(e.target.files[0])});
+function autoModal(){modal('<h3>⚡ Crear test automático</h3><label>Título<input id="at" placeholder="Ej. Tema 3"></label><label>Foto de apuntes (lee el texto)<input type="file" id="img" accept="image/*"></label><label>Apuntes o preguntas<textarea id="ta" rows="7" placeholder="Pega aquí tus apuntes tal cual (párrafos o listas). Con «término: definición» salen mejores preguntas.\n\nImportar: separa cada pregunta con una línea en blanco, opciones a) b) c) d) y «Respuesta: b»"></textarea></label><div class="err" id="err"></div><div class="bar"><button class="btn" data-a="genNotes">Desde apuntes</button><button class="btn s" data-a="genBulk">Importar preguntas</button></div><div class="bar"><button class="btn s" data-a="genCards">Desde mis tarjetas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><small>Se abrirá el editor para que revises el test antes de guardarlo.</small>')}
 function gen(kind){const er=m=>{$('#err').textContent=m};let qs;const t=$('#ta').value;
  if(kind==='c'){if(S.cards.length<4)return er('Necesitas al menos 4 tarjetas.');qs=mkQs(S.cards.map(c=>({k:'c',q:c.q,a:c.a})))}
- else if(kind==='n'){const it=notesItems(t);if(it.length<4)return er('Necesito al menos 4 líneas con contenido en tus apuntes.');qs=mkQs(it)}
+ else if(kind==='n'){const r=notesItems(t);if(r.items.length<3)return er('Necesito más texto: pega al menos 3 frases completas.');qs=mkQs(r.items,r.ex)}
  else{qs=bulkItems(t);if(!qs.length)return er('No he encontrado preguntas con el formato indicado.')}
  if(!qs||!qs.length)return er('No hay suficientes respuestas distintas para crear opciones.');
  ui.draft={id:uid(),title:($('#at').value||'').trim()||'Test automático',questions:qs.slice(0,40),isNew:true};closeM();ui.tab='tests';ui.play=null;render();window.scrollTo(0,0)}
