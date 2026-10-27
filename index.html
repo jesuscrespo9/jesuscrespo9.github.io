@@ -152,13 +152,13 @@ const actions=(k,id)=>'<button class="ic" aria-label="Editar" data-a="edit'+k+'"
 const taskRow=t=>'<div class="row'+(t.done?' dn':'')+'"><button class="chk" aria-label="Completar" data-a="toggle" data-id="'+t.id+'">'+(t.done?'✓':'')+'</button><div class="g"><b>'+esc(t.title)+'</b><small class="'+(!t.done&&t.due&&t.due<today()?'late':'')+'">'+esc(t.subject||'Sin asignatura')+' · '+dfmt(t.due)+'</small></div><span class="chip p'+t.prio+'">'+PN[t.prio]+'</span>'+actions('Task',t.id)+'</div>';
 const examRow=e=>'<div class="row"><span style="font-size:22px">📝</span><div class="g"><b>'+esc(e.subject)+'</b><small>'+dfmt(e.date)+' · '+left(e.date)+'</small></div>'+actions('Exam',e.id)+'</div>';
 function stats(){const dn=S.tasks.filter(t=>t.done).length,n=S.results.length,avg=n?Math.round(S.results.reduce((a,r)=>a+r.score/r.total,0)/n*100)+'%':'—';
- return '<div class="grid"><div class="stat"><b>'+dn+'/'+S.tasks.length+'</b><span>Tareas completadas</span></div><div class="stat"><b>'+n+'</b><span>Tests realizados</span></div><div class="stat"><b>'+avg+'</b><span>Nota media en tests</span></div><div class="stat"><b>'+S.reviewed+'</b><span>Tarjetas repasadas</span></div></div>'}
+ return '<div class="grid"><div class="stat"><b>'+dn+'/'+S.tasks.length+'</b><span>Tareas completadas</span></div><div class="stat"><b>'+n+'</b><span>Tests realizados</span></div><div class="stat"><b>'+avg+'</b><span>Nota media en tests</span></div><div class="stat"><b>'+S.reviewed+'</b><span>Tarjetas repasadas</span></div><div class="stat"><b>'+streak()+' 🔥</b><span>Días seguidos</span></div><div class="stat"><b>'+weekMins()+'</b><span>Min. estudiados (7 días)</span></div></div>'}
 
 function home(){const h=new Date().getHours(),g=h<13?'Buenos días':h<20?'Buenas tardes':'Buenas noches';
  const pend=S.tasks.filter(t=>!t.done).sort(byDue),dn=S.tasks.length-pend.length,pct=S.tasks.length?Math.round(dn/S.tasks.length*100):0;
  const ex=S.exams.filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
  return '<div class="hero" style="margin-top:12px"><h1>'+g+' 👋</h1><p>'+(pend.length?'Tienes '+pend.length+(pend.length>1?' tareas pendientes.':' tarea pendiente.'):'No tienes tareas pendientes. ¡Buen trabajo!')+'</p><div class="prog"><i style="width:'+pct+'%"></i></div><small>'+pct+'% de tus tareas completadas</small></div>'
- +'<h2>Tareas pendientes</h2>'+(pend.slice(0,5).map(taskRow).join('')||empty('Nada pendiente. Añade tareas en el Planificador.'))
+ +welcome()+timerCard()+'<h2>Tareas pendientes</h2>'+(pend.slice(0,5).map(taskRow).join('')||empty('Nada pendiente. Añade tareas en el Planificador.'))
  +'<h2>Próximos exámenes</h2>'+(ex.map(examRow).join('')||empty('No hay exámenes próximos.'))
  +'<h2>Resumen</h2>'+stats()}
 
@@ -186,25 +186,25 @@ function playView(){const p=ui.play,qs=p.quiz.questions,n=qs.length;
  if(p.done){const pct=Math.round(p.score/n*100);
   return '<h1>Resultado</h1><div class="card"><div class="big">'+p.score+' / '+n+'</div><p style="text-align:center;margin:0">'+pct+'% de aciertos · '+(pct>=80?'¡Excelente!':pct>=50?'Buen trabajo, sigue practicando.':'Repasa y vuelve a intentarlo.')+'</p></div><h2>Respuestas correctas</h2>'
   +qs.map((q,i)=>{const ok=p.answers[i]===q.c;return '<div class="card"><b>'+(i+1)+'. '+esc(q.q)+'</b>'+q.o.map((o,j)=>'<div class="ans '+(j===q.c?'good':(j===p.answers[i]?'wrong':''))+'" style="cursor:default">'+'ABCD'[j]+'. '+esc(o)+(j===q.c?' ✓':'')+(j===p.answers[i]&&!ok?' (tu respuesta)':'')+'</div>').join('')+'</div>'}).join('')
-  +'<div class="bar"><button class="btn" data-a="playQuiz" data-id="'+p.quiz.id+'">Repetir</button><button class="btn s" data-a="exitQuiz">Volver a tests</button></div>'}
+  +(p.score<n?'<div class="bar"><button class="btn wa" data-a="retryWrong">Repetir solo las falladas</button></div>':'')+'<div class="bar"><button class="btn" data-a="playQuiz" data-id="'+p.quiz.id+'">Repetir</button><button class="btn s" data-a="exitQuiz">Volver a tests</button></div>'}
  const q=qs[p.i];
  return '<div class="bar" style="margin-top:14px"><button class="btn s" style="flex:none" data-a="exitQuiz">✕ Salir</button><span class="mu">Pregunta '+(p.i+1)+' de '+n+'</span></div><div class="prog"><i style="width:'+(p.i/n*100)+'%"></i></div>'
  +'<div class="card"><h2 class="qt">'+esc(q.q)+'</h2>'+q.o.map((o,j)=>'<button class="ans'+(p.sel===j?' sel':'')+'" data-a="pick" data-id="'+j+'">'+'ABCD'[j]+'. '+esc(o)+'</button>').join('')+'</div>'
  +'<div class="bar"><button class="btn" data-a="next"'+(p.sel==null?' disabled':'')+'>'+(p.i===n-1?'Terminar':'Siguiente')+'</button></div>'}
 
-function cards(){const n=S.cards.length;let st='';
- if(n){if(ui.ci>=n)ui.ci=0;const c=S.cards[ui.ci];
+function cards(){const Q=cq(),n=Q.length;let st='';
+ if(n){if(ui.ci>=n)ui.ci=0;const c=Q[ui.ci];
   st='<div class="fc'+(ui.flip?' back':'')+'" data-a="flip" role="button" tabindex="0"><small>'+(ui.flip?'Respuesta':'Pregunta')+' · '+(ui.ci+1)+'/'+n+'</small><p>'+esc(ui.flip?c.a:c.q)+'</p><small>Toca para girar</small></div>'
   +(ui.flip?'<div class="bar"><button class="btn ok" data-a="know">✓ Me la sé</button><button class="btn wa" data-a="review">↻ Repasar</button></div>':'')
   +'<div class="bar"><button class="btn s" data-a="prevC">← Anterior</button><button class="btn s" data-a="nextC">Siguiente →</button></div>'}
- else st=empty('No hay tarjetas. Crea la primera.');
- return '<h1>Tarjetas</h1>'+st+'<div class="bar"><button class="btn" data-a="newCard">+ Nueva tarjeta</button></div><h2>Todas las tarjetas ('+n+')</h2>'
+ else st=empty(ui.only&&S.cards.length?'¡No te queda nada por repasar! 🎉':'No hay tarjetas. Crea la primera.');
+ return '<h1>Tarjetas</h1>'+st+'<div class="bar"><button class="btn" data-a="newCard">+ Nueva tarjeta</button><button class="btn s" data-a="flashAuto">⚡ Desde apuntes</button></div><div class="bar"><button class="btn s" data-a="onlyToggle">'+(ui.only?'Ver todas':'Solo por repasar ('+S.cards.filter(c=>c.known!==true).length+')')+'</button><button class="btn s" data-a="shufC">🔀 Barajar</button></div><h2>Todas las tarjetas ('+S.cards.length+')</h2>'
  +S.cards.map(c=>'<div class="row"><div class="g"><b>'+esc(c.q)+'</b><small>'+(c.known===true?'✓ Te la sabes':c.known===false?'↻ Necesita repaso':'Sin repasar')+'</small></div>'+actions('Card',c.id)+'</div>').join('')}
 
 function progress(){const rs=[...S.results].reverse(),k=S.cards.filter(c=>c.known===true).length,r=S.cards.filter(c=>c.known===false).length;
  return '<h1>Progreso</h1>'+stats()
  +'<h2>Tarjetas</h2><div class="card">Te las sabes: <b>'+k+'</b> · Necesitan repaso: <b>'+r+'</b> · Sin repasar: <b>'+(S.cards.length-k-r)+'</b></div>'
- +'<h2>Resultados de tests</h2>'+(rs.map(x=>'<div class="row"><div class="g"><b>'+esc(x.title)+'</b><small>'+dfmt(x.date)+'</small></div><span class="chip '+(x.score/x.total>=.5?'pbaja':'palta')+'">'+x.score+'/'+x.total+'</span><button class="ic" aria-label="Eliminar" data-a="delRes" data-id="'+x.id+'">🗑</button></div>').join('')||empty('Aún no has hecho ningún test.'))
+ +chart()+'<h2>Resultados de tests</h2>'+(rs.map(x=>'<div class="row"><div class="g"><b>'+esc(x.title)+'</b><small>'+dfmt(x.date)+'</small></div><span class="chip '+(x.score/x.total>=.5?'pbaja':'palta')+'">'+x.score+'/'+x.total+'</span><button class="ic" aria-label="Eliminar" data-a="delRes" data-id="'+x.id+'">🗑</button></div>').join('')||empty('Aún no has hecho ningún test.'))
  +'<h2>Datos</h2><p class="mu" style="font-size:13px;margin:0 0 8px">Tus datos se guardan solo en este navegador de este dispositivo.</p><div class="bar"><button class="btn s" data-a="backup">Copia de seguridad</button><button class="btn s" data-a="restore">Importar copia</button><button class="btn s" data-a="clearAll">Borrar todo</button></div>'}
 
 const TABS=[['home','🏠','Inicio',home],['plan','📅','Planificador',planner],['tests','✅','Tests',tests],['cards','🗂','Tarjetas',cards],['prog','📊','Progreso',progress]];
@@ -212,9 +212,9 @@ function render(){const t=TABS.find(x=>x[0]===ui.tab);$('#main').innerHTML=t[3](
  $('#nav').innerHTML=TABS.map(x=>'<button class="'+(x[0]===ui.tab?'on':'')+'" data-a="tab" data-id="'+x[0]+'"><span>'+x[1]+'</span>'+x[2]+'</button>').join('')}
 
 /* ---------- actions ---------- */
-function finishQuiz(p){p.done=true;p.score=p.quiz.questions.reduce((a,q,i)=>a+(p.answers[i]===q.c?1:0),0);
- S.results.push({id:uid(),quizId:p.quiz.id,title:p.quiz.title,score:p.score,total:p.quiz.questions.length,date:today()});S.results=S.results.slice(-50);save()}
-function mark(v){const c=S.cards[ui.ci];c.known=v;S.reviewed++;ui.flip=false;ui.ci=(ui.ci+1)%S.cards.length;save()}
+function finishQuiz(p){touch();p.done=true;p.score=p.quiz.questions.reduce((a,q,i)=>a+(p.answers[i]===q.c?1:0),0);
+ if(!p.retry)S.results.push({id:uid(),quizId:p.quiz.id,title:p.quiz.title,score:p.score,total:p.quiz.questions.length,date:today()});S.results=S.results.slice(-50);save()}
+function mark(v){const c=cq()[ui.ci];c.known=v;S.reviewed++;touch();ui.flip=false;ui.ci=(ui.only&&v)?ui.ci:ui.ci+1;save()}
 function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function mkQs(items,ex){ex=ex||[];return items.map(x=>{
  let p=[...new Set(items.filter(y=>y.k===x.k).map(y=>y.a))].filter(z=>z!==x.a);
@@ -267,7 +267,7 @@ async function ocr(f){const st=$('#err');st.style.color='var(--mu)';st.textConte
   const t=r.data.text.trim();if(!t)throw 0;const ta=$('#ta');ta.value=(ta.value?ta.value+'\n':'')+t;st.style.color='var(--ok)';st.textContent='Texto leído. Revísalo y corrige errores antes de generar.'}
  catch(e){st.style.color='';st.textContent='No se pudo leer la foto. Comprueba la conexión o prueba con una foto más nítida y recta.'}}
 document.addEventListener('change',e=>{const f=e.target.files;if(!f||!f[0])return;if(e.target.id==='img')ocrAll([...f]);if(e.target.id==='doc')readDoc(f[0])});
-function autoModal(){modal('<h3>⚡ Crear test automático</h3><p class="mu" style="font-size:14px;margin:0 0 6px">Convierte tus apuntes en un test. Antes de guardarlo se abre el editor para que revises y corrijas las preguntas.</p><label>1. Título del test<input id="at" placeholder="Ej. Tema 3 de Historia"></label><b style="font-size:14px">2. Elige de dónde sale el texto</b><label>📄 Archivo PDF o TXT<input type="file" id="doc" accept=".pdf,.txt,application/pdf,text/plain"></label><small>La opción más fiable: lee el texto exacto. No sirve si el PDF es un escaneo (solo imágenes).</small><label>📷 Fotos de texto impreso (no sirve letra a mano)<input type="file" id="img" accept="image/*" multiple></label><small>Para libros, diapositivas o apuntes pasados a ordenador. Puedes elegir varias fotos. Necesita internet y tarda unos segundos por foto. Con letra a mano, poca luz o fotos torcidas falla.</small><label>✍️ O pega o escribe el texto aquí<textarea id="ta" rows="6" placeholder="Pega tus apuntes. Aquí también aparecerá el texto leído de los archivos y fotos."></textarea></label><small>Revisa y corrige el texto antes de crear las preguntas.</small><div class="err" id="err"></div><b style="font-size:14px">3. Crear</b><div class="bar"><button class="btn" data-a="genNotes">Desde el texto</button><button class="btn s" data-a="genCards">Desde mis tarjetas</button></div><div class="bar"><button class="btn s" data-a="genBulk">Importar preguntas ya escritas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><details><summary>¿Cómo funciona «Desde el texto»?</summary><p class="mu" style="font-size:13px">No usa inteligencia artificial: aplica reglas, así que alguna pregunta puede salir rara. Crea dos tipos: de completar (oculta un número, un nombre propio o una palabra clave) y de definición (frases con «es», «son», «significa»… o escritas como «término: definición»). Las opciones falsas salen de otras palabras de tus apuntes. Funciona mejor con frases completas y datos concretos. Necesita al menos 3 frases.</p></details><details><summary>¿Y «Desde mis tarjetas»?</summary><p class="mu" style="font-size:13px">Usa tus tarjetas: la pregunta es la parte delantera y la respuesta correcta la de detrás. Necesitas al menos 4 tarjetas.</p></details><details><summary>¿Y «Importar preguntas ya escritas»?</summary><p class="mu" style="font-size:13px">Pega varias preguntas en este formato, separadas por una línea en blanco, y se crean de golpe:</p><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:10px;border-radius:12px">¿Capital de Francia?\na) Madrid\nb) París\nc) Roma\nd) Lisboa\nRespuesta: b</pre></details>')}
+function autoModal(){modal('<h3>⚡ Crear test o tarjetas automáticos</h3><p class="mu" style="font-size:14px;margin:0 0 6px">Convierte tus apuntes en un test (se abre el editor para revisarlo antes de guardar) o en tarjetas de memoria (se añaden a tus tarjetas).</p><label>1. Título del test<input id="at" placeholder="Ej. Tema 3 de Historia"></label><b style="font-size:14px">2. Elige de dónde sale el texto</b><label>📄 Archivo PDF o TXT<input type="file" id="doc" accept=".pdf,.txt,application/pdf,text/plain"></label><small>La opción más fiable: lee el texto exacto. No sirve si el PDF es un escaneo (solo imágenes).</small><label>📷 Fotos de texto impreso (no sirve letra a mano)<input type="file" id="img" accept="image/*" multiple></label><small>Para libros, diapositivas o apuntes pasados a ordenador. Puedes elegir varias fotos. Necesita internet y tarda unos segundos por foto. Con letra a mano, poca luz o fotos torcidas falla.</small><label>✍️ O pega o escribe el texto aquí<textarea id="ta" rows="6" placeholder="Pega tus apuntes. Aquí también aparecerá el texto leído de los archivos y fotos."></textarea></label><small>Revisa y corrige el texto antes de crear las preguntas.</small><div class="err" id="err"></div><b style="font-size:14px">3. Crear</b><div class="bar"><button class="btn" data-a="genNotes">Test desde el texto</button><button class="btn s" data-a="genCards">Test desde mis tarjetas</button></div><div class="bar"><button class="btn" data-a="genFlash">🗂 Crear tarjetas desde el texto</button></div><div class="bar"><button class="btn s" data-a="genBulk">Importar preguntas ya escritas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><details><summary>¿Cómo funciona con el texto?</summary><p class="mu" style="font-size:13px">No usa inteligencia artificial: aplica reglas, así que alguna pregunta puede salir rara. Crea dos tipos: de completar (oculta un número, un nombre propio o una palabra clave) y de definición (frases con «es», «son», «significa»… o escritas como «término: definición»). Las opciones falsas salen de otras palabras de tus apuntes. Funciona mejor con frases completas y datos concretos. Para el test necesita al menos 3 frases; para las tarjetas, 2. Con las tarjetas, la parte de delante es la pregunta y la de detrás la respuesta; las repetidas no se duplican.</p></details><details><summary>¿Y «Desde mis tarjetas»?</summary><p class="mu" style="font-size:13px">Usa tus tarjetas: la pregunta es la parte delantera y la respuesta correcta la de detrás. Necesitas al menos 4 tarjetas.</p></details><details><summary>¿Y «Importar preguntas ya escritas»?</summary><p class="mu" style="font-size:13px">Pega varias preguntas en este formato, separadas por una línea en blanco, y se crean de golpe:</p><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:10px;border-radius:12px">¿Capital de Francia?\na) Madrid\nb) París\nc) Roma\nd) Lisboa\nRespuesta: b</pre></details>')}
 function gen(kind){const er=m=>{$('#err').textContent=m};let qs;const t=$('#ta').value;
  if(kind==='c'){if(S.cards.length<4)return er('Necesitas al menos 4 tarjetas.');qs=mkQs(S.cards.map(c=>({k:'c',q:c.q,a:c.a})))}
  else if(kind==='n'){const r=notesItems(t);if(r.items.length<3)return er('Necesito más texto: pega al menos 3 frases completas.');qs=mkQs(r.items,r.ex)}
@@ -280,13 +280,29 @@ function doRestore(){try{const d=JSON.parse($('#ta').value);if(!d||!Array.isArra
 function dl(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='studyflow-copia-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
 function cp(){const t=$('#ta');t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}}
 document.addEventListener('change',e=>{if(e.target.id==='ff'&&e.target.files[0])e.target.files[0].text().then(t=>{$('#ta').value=t})});
+const cq=()=>ui.only?S.cards.filter(c=>c.known!==true):S.cards;
+function touch(){S.days=S.days||[];const t=today();if(!S.days.includes(t)){S.days.push(t);S.days=S.days.slice(-400)}}
+function streak(){const d=new Set(S.days||[]);let n=0,x=new Date();if(!d.has(ymd(x)))x.setDate(x.getDate()-1);while(d.has(ymd(x))){n++;x.setDate(x.getDate()-1)}return n}
+function weekMins(){let n=0;for(let i=0;i<7;i++)n+=(S.mins||{})[plus(-i)]||0;return n}
+function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:16px;right:16px;bottom:90px;background:var(--pr);color:var(--onp);padding:12px 16px;border-radius:14px;z-index:60;text-align:center';document.body.appendChild(d);setTimeout(()=>d.remove(),4000)}
+function chart(){const r=S.results.slice(-10);if(r.length<2)return'';return '<h2>Evolución de notas</h2><div class="card" style="display:flex;align-items:flex-end;gap:6px;height:110px">'+r.map(x=>{const p=Math.round(x.score/x.total*100);return '<div style="flex:1;text-align:center;font-size:10px;color:var(--mu)"><div style="height:'+Math.max(4,p*.7)+'px;background:var(--pr);border-radius:6px 6px 0 0"></div>'+p+'%</div>'}).join('')+'</div>'}
+function welcome(){if(S.tasks.length||S.exams.length||S.quizzes.length||S.cards.length)return'';return '<div class="card"><b>👋 ¡Bienvenido a StudyFlow!</b><p class="mu" style="font-size:14px;margin:6px 0">Empieza añadiendo tus tareas y exámenes, o genera tarjetas y tests automáticos desde tus apuntes.</p><div class="bar"><button class="btn" data-a="newTask">+ Tarea</button><button class="btn s" data-a="auto">⚡ Desde apuntes</button></div></div>'}
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function timerCard(){const t=ui.t||(ui.t={dur:25,left:1500,run:false});
+ return '<h2>Sesión de estudio</h2><div class="card" style="text-align:center"><div class="big" id="tm">'+fmt(t.left)+'</div><div class="bar">'+(t.run?'<button class="btn s" data-a="tpause">Pausar</button>':'<button class="btn" data-a="tstart">Empezar</button>')+'<button class="btn s" data-a="treset">Reiniciar</button></div><div class="bar">'+[15,25,45].map(x=>'<button class="btn s" data-a="tdur" data-id="'+x+'">'+x+' min</button>').join('')+'</div><small>Al terminar se suman los minutos a tu progreso. Mantén la pantalla encendida para que avise.</small></div>'}
+let TI=null;
+function tick(){const t=ui.t;if(!t||!t.run)return;t.left=Math.max(0,Math.round((t.end-Date.now())/1000));const e=$('#tm');if(e)e.textContent=fmt(t.left);
+ if(t.left===0){t.run=false;clearInterval(TI);S.mins=S.mins||{};S.mins[today()]=(S.mins[today()]||0)+t.dur;touch();save();try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(x){}t.left=t.dur*60;if(ui.tab==='home')render();modal('<h3>⏱ ¡Sesión terminada!</h3><p>Has sumado '+t.dur+' minutos de estudio. Haz un descanso.</p><div class="bar"><button class="btn" data-a="fcancel">Vale</button></div>')}}
+function genFlash(){const er=m=>{$('#err').textContent=m};const r=notesItems($('#ta').value);if(r.items.length<2)return er('Necesito más texto: pega al menos 2 frases completas.');
+ const have=new Set(S.cards.map(c=>c.q));let n=0;r.items.forEach(x=>{const q=x.q.replace('Según tus apuntes, ¿qué','¿Qué');if(have.has(q))return;have.add(q);S.cards.push({id:uid(),q,a:x.a,known:null});n++});
+ save();closeM();ui.tab='cards';ui.only=false;ui.ci=0;ui.flip=false;render();window.scrollTo(0,0);toast('Se han creado '+n+' tarjetas. Revísalas y borra las que no valgan.')}
 function act(a,id){
  const T=()=>S.tasks.find(x=>x.id===id);
  switch(a){
  case'tab':ui.tab=id;ui.play=null;ui.draft=null;ui.flip=false;render();window.scrollTo(0,0);break;
  case'fsave':if(FS)FS();break;
  case'fcancel':closeM();break;
- case'toggle':T().done=!T().done;save();render();break;
+ case'toggle':T().done=!T().done;if(T().done)touch();save();render();break;
  case'newTask':taskForm();break;case'editTask':taskForm(id);break;
  case'delTask':ask('¿Eliminar esta tarea?',()=>{S.tasks=S.tasks.filter(x=>x.id!==id)});break;
  case'newExam':examForm();break;case'editExam':examForm(id);break;
@@ -310,11 +326,19 @@ function act(a,id){
  case'exitQuiz':ui.play=null;render();break;
  case'flip':ui.flip=!ui.flip;render();break;
  case'know':mark(true);render();break;case'review':mark(false);render();break;
- case'nextC':ui.ci=(ui.ci+1)%S.cards.length;ui.flip=false;render();break;
- case'prevC':ui.ci=(ui.ci-1+S.cards.length)%S.cards.length;ui.flip=false;render();break;
+ case'nextC':ui.ci=(ui.ci+1)%cq().length;ui.flip=false;render();break;
+ case'prevC':ui.ci=(ui.ci-1+cq().length)%cq().length;ui.flip=false;render();break;
  case'newCard':cardForm();break;case'editCard':cardForm(id);break;
  case'delCard':ask('¿Eliminar esta tarjeta?',()=>{S.cards=S.cards.filter(x=>x.id!==id)});break;
  case'delRes':ask('¿Eliminar este resultado?',()=>{S.results=S.results.filter(x=>x.id!==id)});break;
+ case'genFlash':genFlash();break;case'flashAuto':autoModal();break;
+ case'onlyToggle':ui.only=!ui.only;ui.ci=0;ui.flip=false;render();break;
+ case'shufC':S.cards=shuf(S.cards);ui.ci=0;ui.flip=false;save();render();break;
+ case'tstart':{const t=ui.t;t.run=true;t.end=Date.now()+t.left*1000;clearInterval(TI);TI=setInterval(tick,500);render();break}
+ case'tpause':ui.t.run=false;clearInterval(TI);render();break;
+ case'treset':ui.t.run=false;clearInterval(TI);ui.t.left=ui.t.dur*60;render();break;
+ case'tdur':ui.t.dur=+id;ui.t.left=ui.t.dur*60;ui.t.run=false;clearInterval(TI);render();break;
+ case'retryWrong':{const p=ui.play,f=p.quiz.questions.filter((q,i)=>p.answers[i]!==q.c);ui.play={retry:true,quiz:{id:p.quiz.id,title:p.quiz.title,questions:shuf(f.map(q=>{const o=shuf(q.o.map((t,i)=>[t,i]));return{q:q.q,o:o.map(x=>x[0]),c:o.findIndex(x=>x[1]===q.c)}}))},i:0,sel:null,answers:[],done:false};render();window.scrollTo(0,0);break}
  case'auto':autoModal();break;case'genCards':gen('c');break;case'genNotes':gen('n');break;case'genBulk':gen('b');break;
  case'backup':backupModal();break;case'restore':restoreModal();break;case'doRestore':doRestore();break;case'dl':dl();break;case'cp':cp();break;
  case'clearAll':ask('¿Borrar todos tus datos? No se puede deshacer.',()=>{S=demo();ui.ci=0},'Sí, borrar todo');break;
