@@ -20,16 +20,16 @@
 <meta name="twitter:description" content="StudyFlow: app gratuita para estudiar con planificador de tareas y exámenes, tests, tarjetas de memoria y seguimiento del progreso. Creada por Jesús Crespo.">
 <meta name="twitter:image" content="https://jesuscrespo9.github.io/og.png">
 
-<meta name="theme-color" content="#7c3aed">
+<meta name="theme-color" content="#c2410c">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#f6f4fc;--card:#fff;--tx:#1e1a2e;--mu:#6a6483;--pr:#7c3aed;--onp:#fff;--pl:#ede9fe;--bd:#e4def3;--ok:#15803d;--okb:#dcfce7;--wa:#b45309;--wab:#fef3c7;--ba:#b91c1c;--bab:#fee2e2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15121f;--card:#201b30;--tx:#f1eefb;--mu:#a49cc0;--pr:#a78bfa;--onp:#1a1030;--pl:#2f2750;--bd:#352d52;--ok:#4ade80;--okb:#143323;--wa:#fbbf24;--wab:#3a2c0e;--ba:#f87171;--bab:#3d1a1a;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#15121f;--card:#201b30;--tx:#f1eefb;--mu:#a49cc0;--pr:#a78bfa;--onp:#1a1030;--pl:#2f2750;--bd:#352d52;--ok:#4ade80;--okb:#143323;--wa:#fbbf24;--wab:#3a2c0e;--ba:#f87171;--bab:#3d1a1a;color-scheme:dark}
+:root{--bg:#fbf6ef;--card:#fff;--tx:#2a1f17;--mu:#7a6a5c;--pr:#c2410c;--onp:#fff;--pl:#ffe9d6;--bd:#eadfd2;--ok:#15803d;--okb:#dcfce7;--wa:#b45309;--wab:#fef3c7;--ba:#b91c1c;--bab:#fee2e2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18120d;--card:#231b14;--tx:#f8f1ea;--mu:#b9a898;--pr:#fb923c;--onp:#2a1204;--pl:#3a2a1c;--bd:#43342a;--ok:#4ade80;--okb:#143323;--wa:#fbbf24;--wab:#3a2c0e;--ba:#f87171;--bab:#3d1a1a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18120d;--card:#231b14;--tx:#f8f1ea;--mu:#b9a898;--pr:#fb923c;--onp:#2a1204;--pl:#3a2a1c;--bd:#43342a;--ok:#4ade80;--okb:#143323;--wa:#fbbf24;--wab:#3a2c0e;--ba:#f87171;--bab:#3d1a1a;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
@@ -87,7 +87,7 @@ details{margin:10px 0}summary{cursor:pointer;color:var(--pr);font-weight:600;fon
 </style>
 </head>
 <body>
-<header><div class="logo">🎓</div><div><b>StudyFlow</b><small>Creada por Jesús Crespo</small></div></header>
+<header><div class="logo">🎓</div><div><b>StudyFlow</b><small>Creada por Jesús Crespo</small></div><button class="ic" id="th" aria-label="Cambiar tema claro u oscuro" style="margin-left:auto;font-size:20px">🌓</button></header>
 <main id="main"><noscript>StudyFlow: app gratuita para estudiar con planificador de tareas y exámenes, tests, tarjetas de memoria y seguimiento del progreso. Creada por Jesús Crespo. Activa JavaScript para usarla.</noscript></main>
 <nav><div id="nav"></div></nav>
 <div id="modal"></div>
@@ -142,10 +142,15 @@ function examForm(id){const e=id?S.exams.find(x=>x.id===id):{date:plus(7)};
  form(id?'Editar examen':'Nuevo examen',[{n:'subject',l:'Asignatura',t:'text'},{n:'date',l:'Fecha',t:'date'}],e,v=>{
   if(!v.subject)return'Escribe la asignatura.';if(!v.date)return'Elige una fecha.';
   if(id)Object.assign(e,v);else S.exams.push(Object.assign({id:uid()},v));});}
+function decksel(){const ds=[...new Set(S.cards.map(c=>c.deck).filter(Boolean))];return ds.length?'<label>Mazo<select id="dsel"><option value="">Todos</option>'+ds.map(d=>'<option'+(d===ui.deck?' selected':'')+'>'+esc(d)+'</option>').join('')+'</select></label>':''}
+document.addEventListener('change',e=>{if(e.target.id==='dsel'){ui.deck=e.target.value;ui.ci=0;ui.flip=false;render()}});
+function say(){const c=cq()[ui.ci];if(!c||!window.speechSynthesis)return toast('Tu navegador no puede leer en voz alta.');speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ui.flip?c.a:c.q);u.lang='es-ES';speechSynthesis.speak(u)}
+function shareQuiz(id){const q=S.quizzes.find(x=>x.id===id),tx=q.questions.map(x=>x.q+'\n'+x.o.map((o,j)=>'abcd'[j]+') '+o).join('\n')+'\nRespuesta: '+'abcd'[x.c]).join('\n\n');
+ modal('<h3>Compartir «'+esc(q.title)+'»</h3><p class="mu" style="font-size:13px">Copia este texto y envíalo (WhatsApp, Notas…). Quien lo reciba puede pegarlo en Tests → ⚡ Automático → Importar preguntas ya escritas.</p><textarea id="ta" rows="9" readonly>'+esc(tx)+'</textarea><div class="bar"><button class="btn" data-a="cp">Copiar</button><button class="btn s" data-a="fcancel">Cerrar</button></div>')}
 function cardForm(id){const c=id?S.cards.find(x=>x.id===id):{};
- form(id?'Editar tarjeta':'Nueva tarjeta',[{n:'q',l:'Pregunta (delante)',t:'area'},{n:'a',l:'Respuesta (detrás)',t:'area'}],c,v=>{
+ form(id?'Editar tarjeta':'Nueva tarjeta',[{n:'q',l:'Pregunta (delante)',t:'area'},{n:'a',l:'Respuesta (detrás)',t:'area'},{n:'deck',l:'Mazo o asignatura (opcional)',t:'text'}],c,v=>{
   if(!v.q||!v.a)return'Rellena la pregunta y la respuesta.';
-  if(id)Object.assign(c,v);else S.cards.push({id:uid(),q:v.q,a:v.a,known:null});});}
+  if(id)Object.assign(c,v);else S.cards.push({id:uid(),q:v.q,a:v.a,deck:v.deck,known:null});});}
 
 /* ---------- views ---------- */
 const actions=(k,id)=>'<button class="ic" aria-label="Editar" data-a="edit'+k+'" data-id="'+id+'">✏️</button><button class="ic" aria-label="Eliminar" data-a="del'+k+'" data-id="'+id+'">🗑</button>';
@@ -173,7 +178,7 @@ function tests(){
  if(ui.draft)return quizEdit();
  return '<h1>Tests</h1><div class="bar"><button class="btn" data-a="newQuiz">+ Nuevo test</button><button class="btn s" data-a="auto">⚡ Automático</button></div>'
  +(S.quizzes.map(q=>{const last=[...S.results].reverse().find(r=>r.quizId===q.id);
-  return '<div class="card"><b>'+esc(q.title)+'</b><br><small>'+q.questions.length+' pregunta'+(q.questions.length===1?'':'s')+(last?' · Último: '+last.score+'/'+last.total:'')+'</small><div class="bar"><button class="btn" data-a="playQuiz" data-id="'+q.id+'"'+(q.questions.length?'':' disabled')+'>Hacer test</button><button class="btn s" data-a="editQuiz" data-id="'+q.id+'">Editar</button><button class="btn s" data-a="delQuiz" data-id="'+q.id+'">Borrar</button></div></div>'}).join('')||empty('Todavía no hay tests. Crea uno con «+ Nuevo test» o genera uno desde tus apuntes con «⚡ Automático».'))}
+  return '<div class="card"><b>'+esc(q.title)+'</b><br><small>'+q.questions.length+' pregunta'+(q.questions.length===1?'':'s')+(last?' · Último: '+last.score+'/'+last.total:'')+'</small><div class="bar"><button class="btn" data-a="playQuiz" data-id="'+q.id+'"'+(q.questions.length?'':' disabled')+'>Hacer test</button><button class="btn s" data-a="editQuiz" data-id="'+q.id+'">Editar</button><button class="btn s" data-a="shareQuiz" data-id="'+q.id+'">Compartir</button><button class="btn s" data-a="delQuiz" data-id="'+q.id+'">Borrar</button></div></div>'}).join('')||empty('Todavía no hay tests. Crea uno con «+ Nuevo test» o genera uno desde tus apuntes con «⚡ Automático».'))}
 
 function quizEdit(){const d=ui.draft;
  return '<h1>'+(d.isNew?'Nuevo test':'Editar test')+'</h1><label>Título del test<input data-f="title" value="'+esc(d.title)+'" placeholder="Ej. Tema 3 de Biología"></label>'
@@ -196,10 +201,10 @@ function cards(){const Q=cq(),n=Q.length;let st='';
  if(n){if(ui.ci>=n)ui.ci=0;const c=Q[ui.ci];
   st='<div class="fc'+(ui.flip?' back':'')+'" data-a="flip" role="button" tabindex="0"><small>'+(ui.flip?'Respuesta':'Pregunta')+' · '+(ui.ci+1)+'/'+n+'</small><p>'+esc(ui.flip?c.a:c.q)+'</p><small>Toca para girar</small></div>'
   +(ui.flip?'<div class="bar"><button class="btn ok" data-a="know">✓ Me la sé</button><button class="btn wa" data-a="review">↻ Repasar</button></div>':'')
-  +'<div class="bar"><button class="btn s" data-a="prevC">← Anterior</button><button class="btn s" data-a="nextC">Siguiente →</button></div>'}
+  +'<div class="bar"><button class="btn s" data-a="prevC">← Anterior</button><button class="btn s" data-a="say" aria-label="Leer en voz alta">🔊</button><button class="btn s" data-a="nextC">Siguiente →</button></div>'}
  else st=empty(ui.only&&S.cards.length?'¡No te queda nada por repasar! 🎉':'No hay tarjetas. Crea la primera.');
- return '<h1>Tarjetas</h1>'+st+'<div class="bar"><button class="btn" data-a="newCard">+ Nueva tarjeta</button><button class="btn s" data-a="flashAuto">⚡ Desde apuntes</button></div><div class="bar"><button class="btn s" data-a="onlyToggle">'+(ui.only?'Ver todas':'Solo por repasar ('+S.cards.filter(c=>c.known!==true).length+')')+'</button><button class="btn s" data-a="shufC">🔀 Barajar</button></div><h2>Todas las tarjetas ('+S.cards.length+')</h2>'
- +S.cards.map(c=>'<div class="row"><div class="g"><b>'+esc(c.q)+'</b><small>'+(c.known===true?'✓ Te la sabes':c.known===false?'↻ Necesita repaso':'Sin repasar')+'</small></div>'+actions('Card',c.id)+'</div>').join('')}
+ return '<h1>Tarjetas</h1>'+decksel()+st+'<div class="bar"><button class="btn" data-a="newCard">+ Nueva tarjeta</button><button class="btn s" data-a="flashAuto">⚡ Desde apuntes</button></div><div class="bar"><button class="btn s" data-a="onlyToggle">'+(ui.only?'Ver todas':'Solo por repasar ('+S.cards.filter(c=>c.known!==true).length+')')+'</button><button class="btn s" data-a="shufC">🔀 Barajar</button><button class="btn s" data-a="resetC">↺ Reiniciar</button></div><h2>Todas las tarjetas ('+S.cards.length+')</h2>'
+ +S.cards.filter(c=>!ui.deck||c.deck===ui.deck).map(c=>'<div class="row"><div class="g"><b>'+esc(c.q)+'</b><small>'+(c.deck?esc(c.deck)+' · ':'')+(c.known===true?'✓ Te la sabes':c.known===false?'↻ Necesita repaso':'Sin repasar')+'</small></div>'+actions('Card',c.id)+'</div>').join('')}
 
 function progress(){const rs=[...S.results].reverse(),k=S.cards.filter(c=>c.known===true).length,r=S.cards.filter(c=>c.known===false).length;
  return '<h1>Progreso</h1>'+stats()
@@ -267,7 +272,7 @@ async function ocr(f){const st=$('#err');st.style.color='var(--mu)';st.textConte
   const t=r.data.text.trim();if(!t)throw 0;const ta=$('#ta');ta.value=(ta.value?ta.value+'\n':'')+t;st.style.color='var(--ok)';st.textContent='Texto leído. Revísalo y corrige errores antes de generar.'}
  catch(e){st.style.color='';st.textContent='No se pudo leer la foto. Comprueba la conexión o prueba con una foto más nítida y recta.'}}
 document.addEventListener('change',e=>{const f=e.target.files;if(!f||!f[0])return;if(e.target.id==='img')ocrAll([...f]);if(e.target.id==='doc')readDoc(f[0])});
-function autoModal(){modal('<h3>⚡ Crear test o tarjetas automáticos</h3><p class="mu" style="font-size:14px;margin:0 0 6px">Convierte tus apuntes en un test (se abre el editor para revisarlo antes de guardar) o en tarjetas de memoria (se añaden a tus tarjetas).</p><label>1. Título del test<input id="at" placeholder="Ej. Tema 3 de Historia"></label><b style="font-size:14px">2. Elige de dónde sale el texto</b><label>📄 Archivo PDF o TXT<input type="file" id="doc" accept=".pdf,.txt,application/pdf,text/plain"></label><small>La opción más fiable: lee el texto exacto. No sirve si el PDF es un escaneo (solo imágenes).</small><label>📷 Fotos de texto impreso (no sirve letra a mano)<input type="file" id="img" accept="image/*" multiple></label><small>Para libros, diapositivas o apuntes pasados a ordenador. Puedes elegir varias fotos. Necesita internet y tarda unos segundos por foto. Con letra a mano, poca luz o fotos torcidas falla.</small><label>✍️ O pega o escribe el texto aquí<textarea id="ta" rows="6" placeholder="Pega tus apuntes. Aquí también aparecerá el texto leído de los archivos y fotos."></textarea></label><small>Revisa y corrige el texto antes de crear las preguntas.</small><div class="err" id="err"></div><b style="font-size:14px">3. Crear</b><div class="bar"><button class="btn" data-a="genNotes">Test desde el texto</button><button class="btn s" data-a="genCards">Test desde mis tarjetas</button></div><div class="bar"><button class="btn" data-a="genFlash">🗂 Crear tarjetas desde el texto</button></div><div class="bar"><button class="btn s" data-a="genBulk">Importar preguntas ya escritas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><details><summary>¿Cómo funciona con el texto?</summary><p class="mu" style="font-size:13px">No usa inteligencia artificial: aplica reglas, así que alguna pregunta puede salir rara. Crea dos tipos: de completar (oculta un número, un nombre propio o una palabra clave) y de definición (frases con «es», «son», «significa»… o escritas como «término: definición»). Las opciones falsas salen de otras palabras de tus apuntes. Funciona mejor con frases completas y datos concretos. Para el test necesita al menos 3 frases; para las tarjetas, 2. Con las tarjetas, la parte de delante es la pregunta y la de detrás la respuesta; las repetidas no se duplican.</p></details><details><summary>¿Y «Desde mis tarjetas»?</summary><p class="mu" style="font-size:13px">Usa tus tarjetas: la pregunta es la parte delantera y la respuesta correcta la de detrás. Necesitas al menos 4 tarjetas.</p></details><details><summary>¿Y «Importar preguntas ya escritas»?</summary><p class="mu" style="font-size:13px">Pega varias preguntas en este formato, separadas por una línea en blanco, y se crean de golpe:</p><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:10px;border-radius:12px">¿Capital de Francia?\na) Madrid\nb) París\nc) Roma\nd) Lisboa\nRespuesta: b</pre></details>')}
+function autoModal(){modal('<h3>⚡ Crear test o tarjetas automáticos</h3><p class="mu" style="font-size:14px;margin:0 0 6px">Convierte tus apuntes en un test (se abre el editor para revisarlo antes de guardar) o en tarjetas de memoria (se añaden a tus tarjetas).</p><label>1. Título (también será el mazo de las tarjetas)<input id="at" placeholder="Ej. Tema 3 de Historia"></label><b style="font-size:14px">2. Elige de dónde sale el texto</b><label>📄 Archivo PDF o TXT<input type="file" id="doc" accept=".pdf,.txt,application/pdf,text/plain"></label><small>La opción más fiable: lee el texto exacto. No sirve si el PDF es un escaneo (solo imágenes).</small><label>📷 Fotos de texto impreso (no sirve letra a mano)<input type="file" id="img" accept="image/*" multiple></label><small>Para libros, diapositivas o apuntes pasados a ordenador. Puedes elegir varias fotos. Necesita internet y tarda unos segundos por foto. Con letra a mano, poca luz o fotos torcidas falla.</small><label>✍️ O pega o escribe el texto aquí<textarea id="ta" rows="6" placeholder="Pega tus apuntes. Aquí también aparecerá el texto leído de los archivos y fotos."></textarea></label><small>Revisa y corrige el texto antes de crear las preguntas.</small><div class="err" id="err"></div><b style="font-size:14px">3. Crear</b><div class="bar"><button class="btn" data-a="genNotes">Test desde el texto</button><button class="btn s" data-a="genCards">Test desde mis tarjetas</button></div><div class="bar"><button class="btn" data-a="genFlash">🗂 Crear tarjetas desde el texto</button></div><div class="bar"><button class="btn s" data-a="genBulk">Importar preguntas ya escritas</button><button class="btn s" data-a="fcancel">Cancelar</button></div><details><summary>¿Cómo funciona con el texto?</summary><p class="mu" style="font-size:13px">No usa inteligencia artificial: aplica reglas, así que alguna pregunta puede salir rara. Crea dos tipos: de completar (oculta un número, un nombre propio o una palabra clave) y de definición (frases con «es», «son», «significa»… o escritas como «término: definición»). Las opciones falsas salen de otras palabras de tus apuntes. Funciona mejor con frases completas y datos concretos. Para el test necesita al menos 3 frases; para las tarjetas, 2. Con las tarjetas, la parte de delante es la pregunta y la de detrás la respuesta; las repetidas no se duplican.</p></details><details><summary>¿Y «Desde mis tarjetas»?</summary><p class="mu" style="font-size:13px">Usa tus tarjetas: la pregunta es la parte delantera y la respuesta correcta la de detrás. Necesitas al menos 4 tarjetas.</p></details><details><summary>¿Y «Importar preguntas ya escritas»?</summary><p class="mu" style="font-size:13px">Pega varias preguntas en este formato, separadas por una línea en blanco, y se crean de golpe:</p><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:10px;border-radius:12px">¿Capital de Francia?\na) Madrid\nb) París\nc) Roma\nd) Lisboa\nRespuesta: b</pre></details>')}
 function gen(kind){const er=m=>{$('#err').textContent=m};let qs;const t=$('#ta').value;
  if(kind==='c'){if(S.cards.length<4)return er('Necesitas al menos 4 tarjetas.');qs=mkQs(S.cards.map(c=>({k:'c',q:c.q,a:c.a})))}
  else if(kind==='n'){const r=notesItems(t);if(r.items.length<3)return er('Necesito más texto: pega al menos 3 frases completas.');qs=mkQs(r.items,r.ex)}
@@ -280,7 +285,7 @@ function doRestore(){try{const d=JSON.parse($('#ta').value);if(!d||!Array.isArra
 function dl(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='studyflow-copia-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
 function cp(){const t=$('#ta');t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}}
 document.addEventListener('change',e=>{if(e.target.id==='ff'&&e.target.files[0])e.target.files[0].text().then(t=>{$('#ta').value=t})});
-const cq=()=>ui.only?S.cards.filter(c=>c.known!==true):S.cards;
+const cq=()=>{if(ui.deck&&!S.cards.some(c=>c.deck===ui.deck))ui.deck='';return S.cards.filter(c=>(!ui.deck||c.deck===ui.deck)&&(!ui.only||c.known!==true))};
 function touch(){S.days=S.days||[];const t=today();if(!S.days.includes(t)){S.days.push(t);S.days=S.days.slice(-400)}}
 function streak(){const d=new Set(S.days||[]);let n=0,x=new Date();if(!d.has(ymd(x)))x.setDate(x.getDate()-1);while(d.has(ymd(x))){n++;x.setDate(x.getDate()-1)}return n}
 function weekMins(){let n=0;for(let i=0;i<7;i++)n+=(S.mins||{})[plus(-i)]||0;return n}
@@ -294,7 +299,7 @@ let TI=null;
 function tick(){const t=ui.t;if(!t||!t.run)return;t.left=Math.max(0,Math.round((t.end-Date.now())/1000));const e=$('#tm');if(e)e.textContent=fmt(t.left);
  if(t.left===0){t.run=false;clearInterval(TI);S.mins=S.mins||{};S.mins[today()]=(S.mins[today()]||0)+t.dur;touch();save();try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(x){}t.left=t.dur*60;if(ui.tab==='home')render();modal('<h3>⏱ ¡Sesión terminada!</h3><p>Has sumado '+t.dur+' minutos de estudio. Haz un descanso.</p><div class="bar"><button class="btn" data-a="fcancel">Vale</button></div>')}}
 function genFlash(){const er=m=>{$('#err').textContent=m};const r=notesItems($('#ta').value);if(r.items.length<2)return er('Necesito más texto: pega al menos 2 frases completas.');
- const have=new Set(S.cards.map(c=>c.q));let n=0;r.items.forEach(x=>{const q=x.q.replace('Según tus apuntes, ¿qué','¿Qué');if(have.has(q))return;have.add(q);S.cards.push({id:uid(),q,a:x.a,known:null});n++});
+ const have=new Set(S.cards.map(c=>c.q));let n=0;const dkk=(($('#at')||{}).value||'').trim();r.items.forEach(x=>{const q=x.q.replace('Según tus apuntes, ¿qué','¿Qué');if(have.has(q))return;have.add(q);S.cards.push({id:uid(),q,a:x.a,deck:dkk,known:null});n++});
  save();closeM();ui.tab='cards';ui.only=false;ui.ci=0;ui.flip=false;render();window.scrollTo(0,0);toast('Se han creado '+n+' tarjetas. Revísalas y borra las que no valgan.')}
 function act(a,id){
  const T=()=>S.tasks.find(x=>x.id===id);
@@ -331,7 +336,7 @@ function act(a,id){
  case'newCard':cardForm();break;case'editCard':cardForm(id);break;
  case'delCard':ask('¿Eliminar esta tarjeta?',()=>{S.cards=S.cards.filter(x=>x.id!==id)});break;
  case'delRes':ask('¿Eliminar este resultado?',()=>{S.results=S.results.filter(x=>x.id!==id)});break;
- case'genFlash':genFlash();break;case'flashAuto':autoModal();break;
+ case'genFlash':genFlash();break;case'say':say();break;case'shareQuiz':shareQuiz(id);break;case'resetC':ask('¿Reiniciar el estado de todas las tarjetas?',()=>{S.cards.forEach(c=>c.known=null);ui.ci=0;ui.flip=false},'Sí, reiniciar');break;case'flashAuto':autoModal();break;
  case'onlyToggle':ui.only=!ui.only;ui.ci=0;ui.flip=false;render();break;
  case'shufC':S.cards=shuf(S.cards);ui.ci=0;ui.flip=false;save();render();break;
  case'tstart':{const t=ui.t;t.run=true;t.end=Date.now()+t.left*1000;clearInterval(TI);TI=setInterval(tick,500);render();break}
@@ -354,6 +359,8 @@ const sync=e=>{const t=e.target,f=t.dataset&&t.dataset.f,d=ui.draft;if(!f||!d)re
 document.addEventListener('input',sync);document.addEventListener('change',sync);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();
  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('fc')){e.preventDefault();act('flip')}});
+(function(){let t;try{t=localStorage.getItem('studyflow:theme')}catch(e){}if(t)document.documentElement.dataset.theme=t;
+$('#th').addEventListener('click',()=>{const d=document.documentElement,cur=d.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),n=cur==='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('studyflow:theme',n)}catch(e){}})})();
 load();render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
